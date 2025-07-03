@@ -7,7 +7,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.6.0", features = ["router", "fullstack", "server"] }
+dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
+password-auth = "1.0.0"
+passwords = "3.1.16"
 rusqlite = { version = "0.36.0", features = ["chrono", "bundled"],  optional=true }
 
 [features]
