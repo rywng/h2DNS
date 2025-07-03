@@ -3,4 +3,3 @@
 //! component and an Echo component for fullstack apps to be used in our app.
 
 pub mod input;
-use input::InputField;

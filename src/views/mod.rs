@@ -16,3 +16,6 @@ pub use resolver::Resolver;
 
 mod register;
 pub use register::Register;
+
+mod forwarder;
+pub use forwarder::Forwarder;
