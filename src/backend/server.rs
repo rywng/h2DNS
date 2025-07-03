@@ -1,6 +1,7 @@
-use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
+#[cfg(feature = "server")]
 use password_auth::{self, verify_password};
+#[cfg(feature = "server")]
 use passwords;
 use std::env;
 use std::net::IpAddr;
@@ -23,30 +24,29 @@ thread_local! {
         conn
     };
 pub static PW_HASH: String = {
+        // Password Hash, example:
+        // Password: ho4r04lu
+        // Hash: $argon2id$v=19$m=19456,t=2,p=1$sBaUosHhTi+3W5Bin5K+jQ$c+Tbk0pFp0Wt8TjJTLzP8ulHKg7Yyeoe6E82+2IkKOI
     let hash = env::var("PW_HASH");
-    let hash = match hash {
+    match hash {
         Ok(val) => {
             val
         },
         Err(_) => {
             let passgen = passwords::PasswordGenerator::new();
             let pass: String = passgen.generate_one().unwrap();
-            debug!("Password hash has been generated for password: {pass}");
-            let pass_hash = password_auth::generate_hash(&pass);
-            pass_hash
+            password_auth::generate_hash(&pass)
         }
-    };
-
-    hash
+    }
 };
 }
 
-#[server(endpoint="resolve")]
+#[server(endpoint = "resolve")]
 pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
     let domains: Vec<String> = DB.with(|f| {
         f.prepare("SELECT ip FROM domains WHERE domain = (?1)")
             .unwrap()
-            .query_map([domain], |row| Ok(row.get(0)?))
+            .query_map([domain], |row| row.get(0))
             .unwrap()
             .map(|r| r.unwrap())
             .collect()
@@ -62,17 +62,18 @@ pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
     Ok(res)
 }
 
-#[server(endpoint="register")]
+#[server(endpoint = "register")]
 pub async fn register_domain(
     domain: String,
     ip: String,
     pass: String,
 ) -> Result<(), ServerFnError> {
-    PW_HASH.with(|hash| {
-        verify_password(pass, hash)
-    })?;
+    PW_HASH.with(|hash| verify_password(pass, hash))?;
     DB.with(|conn| {
-        conn.execute("INSERT INTO domains (domain, ip) VALUES (?1, ?2)", (&domain, &ip))
+        conn.execute(
+            "INSERT INTO domains (domain, ip) VALUES (?1, ?2)",
+            (&domain, &ip),
+        )
     })?;
 
     Ok(())
