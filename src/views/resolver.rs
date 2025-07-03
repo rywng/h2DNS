@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 /// re-run and the rendered HTML will be updated.
 #[component]
 pub fn Resolver(domain: String) -> Element {
-    let domain = use_server_future(|| resolve_domain("google".into()))?.unwrap();
+    let domain = use_server_future(move || resolve_domain(domain.clone()))?.unwrap();
     let result: String = match domain {
         Ok(ip) => ip.to_string(),
         Err(error) => error.to_string(),

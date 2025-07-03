@@ -1,6 +1,7 @@
 #[cfg(feature = "server")]
 pub mod server_utils;
 
+use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use password_auth::{self, verify_password};
@@ -10,7 +11,7 @@ use std::net::IpAddr;
 #[server(endpoint = "resolve")]
 pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
     let domains: Vec<String> = server_utils::DB.with(|f| {
-        f.prepare("SELECT ip FROM domains WHERE domain = (?1)")
+        f.prepare("SELECT ip FROM domains WHERE domain=?1;")
             .unwrap()
             .query_map(server_utils::params![domain], |row| row.get(0))
             .unwrap()
@@ -18,6 +19,7 @@ pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
             .collect()
     });
     dbg!(&domains);
+    dbg!(&domain);
     let res: IpAddr = match domains.first() {
         Some(addr) => addr.parse()?,
         None => {
@@ -35,14 +37,19 @@ pub async fn register_domain(
     pass: String,
 ) -> Result<(), ServerFnError> {
     let _: IpAddr = ip.parse()?;
-    server_utils::PW_HASH.with(|hash| verify_password(pass, hash))?;
+    server_utils::PW_HASH.with(|hash| verify_password(&pass, hash))?;
 
     server_utils::DB.with(|conn| {
         conn.execute(
-            "INSERT INTO domains (domain, ip) VALUES (?1, ?2)",
+            "INSERT OR REPLACE INTO domains (id, domain, ip) VALUES ((select id from domains where domain=?1) ,?1, ?2);",
             (&domain, &ip),
         )
     })?;
+
+    debug!(
+        "Successfully registered: {}, {} with password {}",
+        &domain, &ip, &pass
+    );
 
     Ok(())
 }
