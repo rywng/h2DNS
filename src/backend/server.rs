@@ -1,5 +1,6 @@
+use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
-use password_auth;
+use password_auth::{self, verify_password};
 use passwords;
 use std::env;
 use std::net::IpAddr;
@@ -21,10 +22,6 @@ thread_local! {
         // Return the connection
         conn
     };
-}
-
-#[cfg(feature = "server")]
-thread_local! {
 pub static PW_HASH: String = {
     let hash = env::var("PW_HASH");
     let hash = match hash {
@@ -34,6 +31,7 @@ pub static PW_HASH: String = {
         Err(_) => {
             let passgen = passwords::PasswordGenerator::new();
             let pass: String = passgen.generate_one().unwrap();
+            debug!("Password hash has been generated for password: {pass}");
             let pass_hash = password_auth::generate_hash(&pass);
             pass_hash
         }
@@ -43,7 +41,7 @@ pub static PW_HASH: String = {
 };
 }
 
-#[server]
+#[server(endpoint="resolve")]
 pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
     let domains: Vec<String> = DB.with(|f| {
         f.prepare("SELECT ip FROM domains WHERE domain = (?1)")
@@ -57,18 +55,25 @@ pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
     let res: IpAddr = match domains.first() {
         Some(addr) => addr.parse()?,
         None => {
-            return Err(ServerFnError::Args("Domain not exist".to_string()));
+            return Err(ServerFnError::ServerError("Domain not exist".to_string()));
         }
     };
 
     Ok(res)
 }
 
-#[server]
+#[server(endpoint="register")]
 pub async fn register_domain(
     domain: String,
     ip: String,
     pass: String,
 ) -> Result<(), ServerFnError> {
-    todo!()
+    PW_HASH.with(|hash| {
+        verify_password(pass, hash)
+    })?;
+    DB.with(|conn| {
+        conn.execute("INSERT INTO domains (domain, ip) VALUES (?1, ?2)", (&domain, &ip))
+    })?;
+
+    Ok(())
 }
