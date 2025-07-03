@@ -2221,6 +2221,7 @@ dependencies = [
  "password-auth",
  "passwords",
  "rusqlite",
+ "tokio",
 ]
 
 [[package]]

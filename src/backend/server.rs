@@ -1,52 +1,20 @@
+use dioxus::logger::tracing::debug;
 use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use password_auth::{self, verify_password};
-#[cfg(feature = "server")]
-use passwords;
 use std::env;
 use std::net::IpAddr;
 
-#[cfg(feature = "server")]
-thread_local! {
-    pub static DB: rusqlite::Connection = {
-        let conn = rusqlite::Connection::open("domains.db").expect("Failed to open database");
+use crate::backend::server_utils;
 
-        // Create the "dogs" table if it doesn't already exist
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS domains (
-                id INTEGER PRIMARY KEY,
-                domain TEXT NOT NULL,
-                ip TEXT NOT NULL
-            );",
-        ).unwrap();
 
-        // Return the connection
-        conn
-    };
-pub static PW_HASH: String = {
-        // Password Hash, example:
-        // Password: ho4r04lu
-        // Hash: $argon2id$v=19$m=19456,t=2,p=1$sBaUosHhTi+3W5Bin5K+jQ$c+Tbk0pFp0Wt8TjJTLzP8ulHKg7Yyeoe6E82+2IkKOI
-    let hash = env::var("PW_HASH");
-    match hash {
-        Ok(val) => {
-            val
-        },
-        Err(_) => {
-            let passgen = passwords::PasswordGenerator::new();
-            let pass: String = passgen.generate_one().unwrap();
-            password_auth::generate_hash(&pass)
-        }
-    }
-};
-}
 
 #[server(endpoint = "resolve")]
 pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
-    let domains: Vec<String> = DB.with(|f| {
+    let domains: Vec<String> = server_utils::DB.with(|f| {
         f.prepare("SELECT ip FROM domains WHERE domain = (?1)")
             .unwrap()
-            .query_map([domain], |row| row.get(0))
+            .query_map(server_utils::params![domain], |row| row.get(0))
             .unwrap()
             .map(|r| r.unwrap())
             .collect()
@@ -68,8 +36,10 @@ pub async fn register_domain(
     ip: String,
     pass: String,
 ) -> Result<(), ServerFnError> {
-    PW_HASH.with(|hash| verify_password(pass, hash))?;
-    DB.with(|conn| {
+    let _: IpAddr = ip.parse()?;
+    server_utils::PW_HASH.with(|hash| verify_password(pass, hash))?;
+
+    server_utils::DB.with(|conn| {
         conn.execute(
             "INSERT INTO domains (domain, ip) VALUES (?1, ?2)",
             (&domain, &ip),
@@ -77,4 +47,54 @@ pub async fn register_domain(
     })?;
 
     Ok(())
+}
+
+#[cfg(test)]
+fn clean_database() {
+    server_utils::DB.with(|conn| {
+        conn.execute_batch("DELETE FROM domains").unwrap();
+    });
+}
+
+#[cfg(test)]
+mod test {
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+    use super::{clean_database, register_domain, resolve_domain};
+
+    #[tokio::test]
+    async fn test_database_operation() {
+        clean_database();
+        assert!(resolve_domain("test-domain".to_string()).await.is_err());
+        let target_ipv4 = IpAddr::V4(Ipv4Addr::new(192, 168, 2, 3));
+
+        register_domain(
+            "test-domain".to_string(),
+            target_ipv4.to_string(),
+            "changemehor404lu".to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            target_ipv4,
+            resolve_domain("test-domain".to_string()).await.unwrap()
+        );
+
+        assert!(resolve_domain("test-v6-domain".to_string()).await.is_err());
+        let target_ipv6 = IpAddr::V6(Ipv6Addr::new(1, 2, 3, 2, 1, 2, 3, 3));
+
+        register_domain(
+            "test-v6-domain".to_string(),
+            target_ipv6.to_string(),
+            "changemehor404lu".to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            target_ipv6,
+            resolve_domain("test-v6-domain".to_string()).await.unwrap()
+        );
+    }
 }

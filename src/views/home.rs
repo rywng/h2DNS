@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 #[component]
 pub fn Home(route: Vec<String>) -> Element {
     rsx! {
-        div {"Accessing: {route:?}"}
-        footer {"Server running h2dns"}
+        div { "Accessing: {route:?}" }
+        footer { "Server running h2dns" }
     }
 }

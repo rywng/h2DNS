@@ -13,3 +13,6 @@ pub use home::Home;
 
 mod resolver;
 pub use resolver::Resolver;
+
+mod register;
+pub use register::Register;

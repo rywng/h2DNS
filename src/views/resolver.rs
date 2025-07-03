@@ -1,4 +1,4 @@
-use crate::backend::server::resolve_domain;
+use crate::backend::resolve_domain;
 use dioxus::prelude::*;
 
 /// The Blog page component that will be rendered when the current route is `[Route::Blog]`

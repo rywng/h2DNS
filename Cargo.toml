@@ -11,6 +11,7 @@ dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
 password-auth = {version="1.0.0", optional=true}
 passwords = {version="3.1.16", optional = true}
 rusqlite = { version = "0.36.0", features = ["chrono", "bundled"],  optional=true }
+tokio = {version= "1.46.0", optional=true}
 
 [features]
 default = ["server"]
@@ -20,7 +21,7 @@ web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 # The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "dep:rusqlite", "dep:passwords", "dep:password-auth"]
+server = ["dioxus/server", "dep:rusqlite", "dep:passwords", "dep:password-auth", "dep:tokio"]
 
 [profile]
 

@@ -2,7 +2,7 @@
 // need dioxus
 use dioxus::prelude::*;
 
-use views::{Home, Resolver};
+use views::*;
 
 mod backend;
 /// Define a components module that contains all shared components for our app.
@@ -24,6 +24,8 @@ enum Route {
         // Fields of the route variant will be passed to the component as props. In this case, the blog component must accept
         // an `id` prop of type `i32`.
         Resolver { domain: String },
+        #[route("/register")]
+        Register {},
         // The route attribute defines the URL pattern that a specific route matches. If that pattern matches the URL,
         // the component for that route will be rendered. The component name that is rendered defaults to the variant name.
         #[route("/:..route")]
