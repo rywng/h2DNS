@@ -1,22 +1,46 @@
-# Development
+# H2DNS
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder.
-If you chose to develop with the router feature, you will also have a `views` folder.
+`HTTP/2` based DNS Server <sub>(Actually it's `HTTP/1.x` but *H2* sounds cooler)</sub>.
+It achieves the following functionality:
 
+- Register & Update your domain with a IP to the server
+- Resolve the registered domain
+- Proxies DDNS requests
+- Has Password Authentication
+
+## Usage
+
+Compile the software with 
+
+```bash
+dx bundle --platform web --release
 ```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # The entrypoint for the app. It also defines the routes for the app.
-│  ├─ components/
-│  │  ├─ mod.rs # Defines the components module
-│  │  ├─ hero.rs # The Hero component for use in the home page
-│  │  ├─ echo.rs # The echo component uses server functions to communicate with the server
-│  ├─ views/ # The views each route will render in the app.
-│  │  ├─ mod.rs # Defines the module for the views route and re-exports the components for each route
-│  │  ├─ blog.rs # The component that will render at the /blog/:id route
-│  │  ├─ home.rs # The component that will render at the / route
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
+
+And run the server binary.
+
+### Environmental Variables
+
+- `PORT`: Port to listen to.
+- `IP`: IP Address to listen to.
+- `PASSWORD`: Password to use.
+
+### API
+
+API are exposed in `/api/` subpath, see more in `src/backend/mod.rs`.
+
+`curl` example:
+
+```bash
+# Run the server binary first
+curl -lv -X POST -d "domain=abc123" http://localhost:8080/api/resolve
+```
+
+## Development
+
+Use `nix` and `direnv` to automatically set up dev environment:
+
+```bash
+echo 'use nix\nmkdir $TMPDIR' > .envrc && direnv allow .
 ```
 
 ### Serving Your App
@@ -25,10 +49,5 @@ Run the following command in the root of your project to start developing with t
 
 ```bash
 dx serve --platform web
-```
-
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
 ```
 
