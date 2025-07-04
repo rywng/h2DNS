@@ -18,8 +18,6 @@ pub async fn resolve_domain(domain: String) -> Result<IpAddr, ServerFnError> {
             .map(|r| r.unwrap())
             .collect()
     });
-    dbg!(&domains);
-    dbg!(&domain);
     let res: IpAddr = match domains.first() {
         Some(addr) => addr.parse()?,
         None => {
