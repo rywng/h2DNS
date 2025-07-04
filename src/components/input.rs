@@ -13,7 +13,7 @@ pub(crate) fn InputField(name: String, input_type: String, signal: Signal<String
             oninput: move |evt| {
                 signal.set(evt.value());
             },
-            value: "{signal()}"
+            value: "{signal}"
         }
     )
 }

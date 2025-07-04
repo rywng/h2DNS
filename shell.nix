@@ -8,7 +8,7 @@ let
 
 in
 pkgs.mkShell {
-  packages = with pkgs; [ dioxus-cli clippy caddy ];
+  packages = with pkgs; [ dioxus-cli clippy taplo ];
   nativeBuildInputs = with pkgs; [
     xorg.libX11
     pkg-config

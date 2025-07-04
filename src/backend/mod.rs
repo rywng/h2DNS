@@ -54,6 +54,43 @@ pub async fn register_domain(
     Ok(())
 }
 
+#[server(endpoint = "forwarder")]
+pub async fn forward_ddns(
+    ip: String,
+    domains: String,
+    token: String,
+    password: String,
+) -> Result<String, ServerFnError> {
+    let ip: IpAddr = ip.parse()?;
+    if ip.is_loopback() || ip.is_unspecified() {
+        return Err(ServerFnError::ServerError("Invalid IP Address".to_string()));
+    }
+    server_utils::PW_HASH.with(|hash| verify_password(&password, hash))?;
+
+    let client = server_utils::reqwest::Client::new();
+    let ip_param = if ip.is_ipv6() { "ipv6" } else { "ip" };
+    let res = client
+        .get("https://www.duckdns.org/update")
+        .query(&[
+            ("domains", domains),
+            ("token", token),
+            (ip_param, ip.to_string()),
+        ])
+        .send()
+        .await?;
+
+    let res_status = res.status();
+    let res_content = res.text().await?;
+    if res_status.is_success() && res_content == "OK" {
+        Ok(res_content)
+    } else {
+        Err(ServerFnError::ServerError(format!(
+            "Remote returned {} with status code {}",
+            res_status, res_content
+        )))
+    }
+}
+
 #[cfg(test)]
 fn clean_database() {
     server_utils::DB.with(|conn| {

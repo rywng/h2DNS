@@ -1,5 +1,6 @@
 use std::env;
 pub use rusqlite::params;
+pub use reqwest;
 
 thread_local! {
     pub static DB: rusqlite::Connection = {
