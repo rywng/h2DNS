@@ -13,7 +13,7 @@ It achieves the following functionality:
 Compile the software with 
 
 ```bash
-dx bundle --platform web --release
+RUSTFLAGS="-C target-cpu=native" dx bundle --platform web --release
 ```
 
 And run the server binary.
